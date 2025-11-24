@@ -3,7 +3,7 @@ import os
 from appium.options.android import UiAutomator2Options
 from langchain.agents import create_agent
 from langgraph.checkpoint.memory import InMemorySaver 
-from tools import appium_driver, get_driver_status, find_element, click_element, get_page_source, take_screenshot, scroll_element, get_current_app, get_text, set_value, press_keycode
+from tools import appium_driver, get_all_tools
 
 
 async def main():
@@ -24,13 +24,10 @@ async def main():
     options.set_capability("appium:locale", "US")
     options.set_capability("appium:newCommandTimeout", 300)  # 5分（300秒）に設定
     
-    # ツールのリスト
-    tools = [get_driver_status, find_element, click_element, get_page_source, take_screenshot, scroll_element, get_current_app, get_text, set_value, press_keycode]
-    
     # エージェントの作成（LangChain v1 API）
     agent = create_agent(
         model="gpt-4.1",
-        tools=tools,
+        tools=get_all_tools(),
         checkpointer=InMemorySaver(),
         system_prompt="""You are a helpful assistant that controls an Android device using Appium.
 You can help users interact with the Android Settings app.
