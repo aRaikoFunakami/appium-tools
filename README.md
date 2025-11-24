@@ -71,14 +71,14 @@ uv run python chat.py
 
 **使用例:**
 ```
-You: Take a screenshot
-Assistant: I've taken a screenshot successfully.
+You: Batteryをクリック
+Assistant: Battery」をクリックしました。次に進みたい操作があればお知らせください。
 
-You: Find the Battery menu and click it
-Assistant: I found the Battery menu and clicked it successfully.
+You: 左の領域を上にスクロール
+Assistant: 左のスクロール可能な領域を上方向にスクロールしました。他に操作したいことがあれば教えてください。
 
-You: Go back
-Assistant: Successfully pressed the back button.
+You:  戻る
+Assistant: 「戻る」ボタンを押しました。さらに操作したいことがあれば教えてください。
 ```
 
 終了: `quit`, `exit`, または `q` を入力

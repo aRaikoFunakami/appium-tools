@@ -4,7 +4,9 @@ from appium.options.android import UiAutomator2Options
 from langchain.agents import create_agent
 from langgraph.checkpoint.memory import InMemorySaver 
 from tools import appium_driver, get_all_tools
+from tools.token_counter import TiktokenCountCallback
 
+LLM_MODEL="gpt-4.1"
 
 async def main():
     # OpenAI API キーの確認
@@ -24,9 +26,12 @@ async def main():
     options.set_capability("appium:locale", "US")
     options.set_capability("appium:newCommandTimeout", 300)  # 5分（300秒）に設定
     
+    # トークンカウンターコールバックを作成
+    token_counter = TiktokenCountCallback(model=LLM_MODEL)
+    
     # エージェントの作成（LangChain v1 API）
     agent = create_agent(
-        model="gpt-4.1",
+        model=LLM_MODEL,
         tools=get_all_tools(),
         checkpointer=InMemorySaver(),
         system_prompt="""You are a helpful assistant that controls an Android device using Appium.
@@ -69,15 +74,33 @@ Always check the driver status first before attempting operations."""
                     break
                 
                 if not user_input:
-                    continue 
+                    continue
                 
-                # エージェントを実行（LangChain v1 API）
+                # トークンカウンターをリセット(1チャットごとに)
+                # 注: エージェントは複数回LLM呼び出しをするため、リセットは実行前に1回だけ
+                token_counter.reset_counters()
+                
+                # エージェントを実行(LangChain v1 API)
+                # callbacks は config の外に出す必要がある
+                from langchain_core.runnables import RunnableConfig
+                
                 response = await agent.ainvoke(
                     {"messages": [{"role": "user", "content": user_input}]},
-                    {"configurable": {"thread_id": "1"}}, 
+                    config=RunnableConfig(
+                        configurable={"thread_id": "1"},
+                        callbacks=[token_counter]
+                    )
                 )
                 
                 print(f"\nAssistant: {response['messages'][-1].content}\n")
+                
+                # トークン使用量と費用を表示
+                metrics = token_counter.get_metrics()
+                print(f"\n💰 Cost: ${metrics['total_cost_usd']:.6f} USD | 📊 Total: {metrics['total_tokens']} tokens")
+                print(f"   📥 Input: {metrics['input_tokens']} tokens (${metrics['input_cost_usd']:.6f})")
+                if metrics['cached_tokens'] > 0:
+                    print(f"   💾 Cached: {metrics['cached_tokens']} tokens (${metrics['cached_cost_usd']:.6f})")
+                print(f"   📤 Output: {metrics['output_tokens']} tokens (${metrics['output_cost_usd']:.6f})\n")
                 
                 
             except KeyboardInterrupt:
