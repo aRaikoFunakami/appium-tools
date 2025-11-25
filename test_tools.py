@@ -18,6 +18,7 @@ from appium_tools import (
     set_value,
     press_keycode,
     double_tap,
+    send_keys,
     activate_app,
     terminate_app,
     list_apps,
@@ -151,6 +152,37 @@ async def test_set_value(driver_session):
             "text": "battery"
         })
         assert "successfully set value" in result.lower()
+        
+        await asyncio.sleep(1)
+        
+        # Press back twice to close search
+        press_keycode.invoke({"keycode": 4})
+        await asyncio.sleep(0.5)
+        press_keycode.invoke({"keycode": 4})
+        await asyncio.sleep(0.5)
+    else:
+        pytest.skip("Search bar title not found")
+
+
+@pytest.mark.asyncio
+async def test_send_keys(driver_session):
+    """Test send_keys tool."""
+    # Click search bar title
+    click_result = click_element.invoke({
+        "by": "id",
+        "value": "com.android.settings:id/search_bar_title"
+    })
+    
+    if "successfully clicked" in click_result.lower():
+        await asyncio.sleep(1)
+        
+        # Send keys to search field without clearing
+        result = send_keys.invoke({
+            "by": "id",
+            "value": "com.google.android.settings.intelligence:id/open_search_view_edit_text",
+            "text": "wifi"
+        })
+        assert "successfully sent keys" in result.lower()
         
         await asyncio.sleep(1)
         

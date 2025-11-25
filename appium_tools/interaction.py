@@ -76,7 +76,15 @@ def get_text(by: str, value: str) -> str:
 
 @tool
 def set_value(by: str, value: str, text: str) -> str:
-    """Set the value/text of an input element (like a text field).
+    """Set the value/text of an input element directly (bypasses keyboard).
+    
+    ⚠️ Use send_keys() instead for normal text input.
+    Only use set_value() when:
+    - You want to avoid showing the keyboard
+    - You need to bypass IME interference (predictive text, autocomplete)
+    - You're entering a large amount of text (faster performance)
+    - You want to avoid triggering input events
+    - You're working with non-standard UI that requires direct value setting
     
     Args:
         by: The locator strategy (e.g., "xpath", "id", "accessibility_id")
@@ -153,5 +161,38 @@ def double_tap(by: str, value: str) -> str:
             return f"Successfully double tapped on element by {by} with value {value}"
         except Exception as e:
             return f"Failed to double tap element: {e}"
+    else:
+        return "Driver is not initialized"
+
+
+@tool
+def send_keys(by: str, value: str, text: str) -> str:
+    """Send text to an input element (recommended for normal text input).
+    
+    ✅ This is the recommended method for text input as it:
+    - Simulates real user typing through the keyboard
+    - Triggers input events properly
+    - Works with IME (Input Method Editor) and autocomplete
+    - Appends text without clearing existing content
+    
+    For special cases where you need to bypass the keyboard, use set_value() instead.
+    
+    Args:
+        by: The locator strategy (e.g., "xpath", "id", "accessibility_id")
+        value: The locator value to search for the input element
+        text: The text to send to the input element
+        
+    Returns:
+        A message indicating success or failure of sending keys
+    """
+    from .session import driver
+    if driver:
+        try:
+            element = driver.find_element(by=by, value=value)
+            element.send_keys(text)
+            print(f"Sent keys '{text}' to element by {by} with value {value}")
+            return f"Successfully sent keys '{text}' to element"
+        except Exception as e:
+            return f"Failed to send keys: {e}"
     else:
         return "Driver is not initialized"
