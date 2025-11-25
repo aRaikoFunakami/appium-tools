@@ -6,6 +6,8 @@
 
 **appium-tools**は、LangChainと統合されたAppium自動化ツールキットです。GPT-4を使用して自然言語でAndroidデバイスを操作できます。
 
+このパッケージは**他のプロジェクトでも再利用可能**で、Git経由でインストールできます。
+
 ### 主要な技術スタック
 
 - **Python 3.13**: 最新のPython機能と型ヒントを使用
@@ -14,6 +16,52 @@
 - **OpenAI GPT-4**: 自然言語処理
 - **pytest**: テストフレームワーク
 - **uv**: 高速なPythonパッケージマネージャー
+
+### 他のプロジェクトでの使用方法
+
+このツールキットは、他のプロジェクトから簡単にインストールして使用できます。
+
+#### 通常のインストール（本番環境向け）
+
+```bash
+uv add git+https://github.com/aRaikoFunakami/appium-tools.git
+```
+
+#### 編集可能モードでインストール（開発向け）
+
+```bash
+uv add --editable git+https://github.com/aRaikoFunakami/appium-tools.git
+```
+
+#### 使用例
+
+```python
+from appium_tools import appium_driver, appium_tools
+from appium_tools.token_counter import TiktokenCountCallback
+
+# Appiumツールを取得
+tools = appium_tools()
+
+# LangChainエージェントで使用
+from langchain.agents import create_agent
+
+agent = create_agent(
+    model="gpt-4o-mini",
+    tools=tools,
+    system_prompt="Androidデバイスを操作するエージェントです。"
+)
+
+# トークンカウンター（オプション）
+token_counter = TiktokenCountCallback(model="gpt-4o-mini")
+response = await agent.ainvoke(
+    {"messages": [("user", "設定アプリを開いて")]},
+    config={"callbacks": [token_counter]}
+)
+
+# コスト表示
+metrics = token_counter.get_metrics()
+print(f"💰 Cost: ${metrics['total_cost_usd']:.6f}")
+```
 
 ### パッケージ管理と実行の原則
 
@@ -63,13 +111,14 @@ uv run python -m module_name
 
 ```
 appium-tools/
-├── tools/                     # ツールモジュール（コア機能）
-│   ├── __init__.py           # get_all_tools()でツール一覧を返す
+├── appium_tools/             # ツールモジュール（コア機能）
+│   ├── __init__.py           # appium_tools()でツール一覧を返す
 │   ├── session.py            # Appiumドライバーのライフサイクル管理
 │   ├── interaction.py        # 要素操作ツール (click, tap, input)
 │   ├── navigation.py         # ナビゲーションツール (screenshot, scroll)
 │   ├── app_management.py     # アプリ管理ツール (activate, terminate)
-│   └── device_info.py        # デバイス情報ツール (info, orientation)
+│   ├── device_info.py        # デバイス情報ツール (info, orientation)
+│   └── token_counter.py      # トークンカウンターとコスト計算
 ├── chat.py                    # LangChainエージェントのメインインターフェース
 ├── test_tools.py             # 全ツールのpytestテストスイート
 └── pyproject.toml            # プロジェクト設定とdependencies
@@ -80,7 +129,7 @@ appium-tools/
 #### 1. グローバルドライバーパターン
 
 ```python
-# tools/session.py
+# appium_tools/session.py
 driver = None  # グローバル変数
 
 @asynccontextmanager
@@ -125,8 +174,8 @@ def tool_name(param: str) -> str:
 #### 3. 動的ツール取得
 
 ```python
-# tools/__init__.py
-def get_all_tools():
+# appium_tools/__init__.py
+def appium_tools():
     """全ツールのリストを返す"""
     return [
         get_driver_status,
@@ -136,7 +185,7 @@ def get_all_tools():
     ]
 ```
 
-`chat.py`では`get_all_tools()`を呼び出すだけで、新しいツールが自動的に利用可能になります。
+`chat.py`では`appium_tools()`を呼び出すだけで、新しいツールが自動的に利用可能になります。
 
 ## コーディング規約
 
@@ -181,15 +230,15 @@ async def test_my_tool(driver_session):
 
 適切なモジュールにツールを追加:
 
-- **要素操作** → `tools/interaction.py`
-- **ナビゲーション** → `tools/navigation.py`
-- **アプリ管理** → `tools/app_management.py`
-- **デバイス情報** → `tools/device_info.py`
+- **要素操作** → `appium_tools/interaction.py`
+- **ナビゲーション** → `appium_tools/navigation.py`
+- **アプリ管理** → `appium_tools/app_management.py`
+- **デバイス情報** → `appium_tools/device_info.py`
 - **新カテゴリ** → 新しいファイルを作成
 
 ### 2. エクスポート追加
 
-`tools/__init__.py`を更新:
+`appium_tools/__init__.py`を更新:
 
 ```python
 from .module import new_tool
@@ -199,7 +248,7 @@ __all__ = [
     "new_tool",
 ]
 
-def get_all_tools():
+def appium_tools():
     return [
         # ... existing
         new_tool,
@@ -349,7 +398,8 @@ await asyncio.sleep(1)  # 画面遷移を待つ
 - [ ] 型ヒント（param: str, return: str）がある
 - [ ] エラーハンドリング（try-except）がある
 - [ ] ツールが文字列を返している
-- [ ] tools/__init__.pyにエクスポート追加されている
+- [ ] appium_tools/__init__.pyにエクスポート追加されている
+- [ ] appium_tools/__init__.pyのappium_tools()に追加されている
 - [ ] **テストが作成されている** ← 最重要
 - [ ] テストが@pytest.mark.asyncioを使用している
 - [ ] テストがdriver_sessionフィクスチャを使用している

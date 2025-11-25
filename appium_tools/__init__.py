@@ -32,14 +32,16 @@ __all__ = [
     "is_locked",
     "get_orientation",
     "set_orientation",
+    # Main function
+    "appium_tools",
 ]
 
 
-def get_all_tools():
-    """LangChain エージェント用の全ツールリストを返す。
+def appium_tools():
+    """LangChain エージェント用の全Appiumツールリストを返す。
     
     Returns:
-        list: LangChain BaseTool のリスト
+        list: LangChain BaseTool のリスト（19個のAppium自動化ツール）
     """
     return [
         get_driver_status,

@@ -6,41 +6,63 @@ LangChain統合されたAppium自動化ツール集。GPT-4を使ってAndroid�
 
 - 🤖 **LangChainエージェント統合**: GPT-4で自然言語によるデバイス操作
 - 🛠️ **19種類のツール**: 要素操作、ナビゲーション、アプリ管理、デバイス情報取得
+- 📦 **再利用可能**: 他のプロジェクトから簡単にインポート可能
 - ✅ **包括的なテスト**: pytestによる全ツールの自動テスト
 - 🔧 **モジュール設計**: 簡単に新しいツールを追加可能
-- 📦 **型安全**: Python 3.13対応、完全な型ヒント
+- 💰 **コスト追跡**: OpenAI APIのトークン使用量と費用を自動計算
+- 📊 **型安全**: Python 3.13対応、完全な型ヒント
 
-## セットアップ
+## インストール
+
+### 他のプロジェクトから使用する場合
+
+**通常インストール（推奨）:**
+```bash
+uv add git+https://github.com/aRaikoFunakami/appium-tools.git
+```
+
+**編集可能モード（開発中のプロジェクト用）:**
+```bash
+uv add --editable git+https://github.com/aRaikoFunakami/appium-tools.git
+```
+
+**使用例:**
+```python
+from tools import appium_tools, appium_driver
+from tools.token_counter import TiktokenCountCallback
+
+# 全Appiumツールを取得
+tools = appium_tools()
+
+# トークンカウンターを使用
+token_counter = TiktokenCountCallback(model="gpt-4.1")
+```
+
+### このリポジトリを開発する場合
 
 ### 必要要件
 
 - Python 3.13+
 - Appium Server 3.x
 - Android Emulator または実機
-- OpenAI APIキー (チャット機能用)
+- OpenAI APIキー (GPT-4使用時)
 
-### インストール
+### リポジトリのセットアップ
 
 1. **リポジトリのクローン**
 ```bash
-git clone <repository-url>
+git clone https://github.com/aRaikoFunakami/appium-tools.git
 cd appium-tools
 ```
 
-2. **依存関係のインストール (uv使用)**
+2. **依存関係のインストール**
 ```bash
 uv sync
 ```
 
-または pip の場合:
-```bash
-pip install -e .
-```
-
 3. **環境変数の設定**
 ```bash
-cp .env.example .env
-# .envファイルを編集してOPENAI_API_KEYを設定
+export OPENAI_API_KEY="your-api-key-here"
 ```
 
 ### Appium Serverの起動
@@ -72,16 +94,20 @@ uv run python chat.py
 **使用例:**
 ```
 You: Batteryをクリック
-Assistant: Battery」をクリックしました。次に進みたい操作があればお知らせください。
+Assistant: 「Battery」をクリックしました。次に進みたい操作があればお知らせください。
 
-You: 左の領域を上にスクロール
-Assistant: 左のスクロール可能な領域を上方向にスクロールしました。他に操作したいことがあれば教えてください。
-
-You:  戻る
-Assistant: 「戻る」ボタンを押しました。さらに操作したいことがあれば教えてください。
+💰 Cost: $0.006066 USD | 📊 Total: 5976 tokens
+   📥 Input: 5952 tokens ($0.005952)
+   💾 Cached: 4800 tokens ($0.001200)
+   📤 Output: 24 tokens ($0.000192)
 ```
 
 終了: `quit`, `exit`, または `q` を入力
+
+**コスト追跡機能:**
+- 各チャットのトークン使用量と費用をリアルタイム表示
+- キャッシュヒットによる節約額も表示
+- OpenAIの実際のAPI使用量に基づく正確な計算
 
 ### 2. ツールの直接テスト (test_tools.py)
 
@@ -138,8 +164,8 @@ uv run pytest test_tools.py -v -s
 
 新しいツールを追加する際の手順:
 
-1. 適切なモジュール（`tools/interaction.py`など）にツールを作成
-2. `tools/__init__.py`にエクスポートと`get_all_tools()`に追加
+1. 適切なモジュール（`appium_tools/interaction.py`など）にツールを作成
+2. `appium_tools/__init__.py`にエクスポートと`appium_tools()`に追加
 3. `test_tools.py`にテストを追加
 4. `uv run pytest test_tools.py::test_new_tool -v` でテスト実行
 
@@ -147,21 +173,64 @@ uv run pytest test_tools.py -v -s
 
 詳細な実装方法は`AGENTS.md`を参照してください。
 
+## API リファレンス
+
+### メイン関数
+
+```python
+from appium_tools import appium_tools
+
+# 全Appiumツールのリストを取得
+tools = appium_tools()
+# Returns: List[BaseTool] - 19個のLangChainツール
+```
+
+### トークンカウンター
+
+```python
+from appium_tools.token_counter import TiktokenCountCallback
+
+# コールバックを作成
+token_counter = TiktokenCountCallback(model="gpt-4.1")
+
+# LangChainエージェントで使用
+response = await agent.ainvoke(
+    {"messages": [{"role": "user", "content": "..."}]},
+    config=RunnableConfig(callbacks=[token_counter])
+)
+
+# メトリクスを取得
+metrics = token_counter.get_metrics()
+# Returns: {
+#   "model": "gpt-4.1",
+#   "input_tokens": 5952,
+#   "cached_tokens": 4800,
+#   "output_tokens": 24,
+#   "total_tokens": 5976,
+#   "input_cost_usd": 0.005952,
+#   "output_cost_usd": 0.000192,
+#   "total_cost_usd": 0.006144,
+#   "cached_cost_usd": 0.001200
+# }
+```
+
 ## プロジェクト構成
 
 ```
 appium-tools/
 ├── tools/                      # ツールモジュール
-│   ├── __init__.py            # エクスポートとget_all_tools()
+│   ├── __init__.py            # エクスポートとappium_tools()
 │   ├── session.py             # ドライバー管理
 │   ├── interaction.py         # 要素操作ツール
 │   ├── navigation.py          # ナビゲーションツール
 │   ├── app_management.py      # アプリ管理ツール
-│   └── device_info.py         # デバイス情報ツール
+│   ├── device_info.py         # デバイス情報ツール
+│   └── token_counter.py       # トークンカウンター
 ├── chat.py                     # LangChainチャットインターフェース
 ├── test_tools.py              # pytestテストスイート
 ├── pyproject.toml             # プロジェクト設定
-└── README.md                  # このファイル
+├── README.md                  # このファイル
+└── AGENTS.md                  # 開発者向け詳細ドキュメント
 ```
 
 ## トラブルシューティング
@@ -179,7 +248,7 @@ appium --allow-insecure=uiautomator2:adb_shell
 
 ### セッションタイムアウト
 
-デフォルトのタイムアウトは300秒です。`tools/session.py`で調整可能:
+デフォルトのタイムアウトは300秒です。`appium_tools/session.py`で調整可能:
 ```python
 options.set_capability("appium:newCommandTimeout", 600)  # 10分
 ```

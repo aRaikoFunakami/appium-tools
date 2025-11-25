@@ -3,8 +3,8 @@ import os
 from appium.options.android import UiAutomator2Options
 from langchain.agents import create_agent
 from langgraph.checkpoint.memory import InMemorySaver 
-from tools import appium_driver, get_all_tools
-from tools.token_counter import TiktokenCountCallback
+from appium_tools import appium_driver, appium_tools
+from appium_tools.token_counter import TiktokenCountCallback
 
 LLM_MODEL="gpt-4.1"
 
@@ -32,7 +32,7 @@ async def main():
     # エージェントの作成（LangChain v1 API）
     agent = create_agent(
         model=LLM_MODEL,
-        tools=get_all_tools(),
+        tools=appium_tools(),
         checkpointer=InMemorySaver(),
         system_prompt="""You are a helpful assistant that controls an Android device using Appium.
 You can help users interact with the Android Settings app.
