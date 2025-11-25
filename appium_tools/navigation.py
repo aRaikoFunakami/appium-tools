@@ -14,7 +14,7 @@ def take_screenshot() -> str:
     if driver:
         try:
             screenshot_base64 = driver.get_screenshot_as_base64()
-            print("Screenshot taken successfully")
+            print("🔧 Screenshot taken successfully")
             return screenshot_base64
         except Exception as e:
             return f"Failed to take screenshot: {e}"
@@ -33,7 +33,7 @@ def get_page_source() -> str:
     if driver:
         try:
             source = driver.page_source
-            print(f"Page source retrieved successfully: {source[:100]}...")  # Print first 100 chars for brevity    
+            print(f"🔧 Page source retrieved successfully: {source[:100]}...")  # Print first 100 chars for brevity    
             return f"Page source retrieved successfully:\n{source}"
         except Exception as e:
             return f"Failed to get page source: {e}"
@@ -96,7 +96,7 @@ def scroll_element(by: str, value: str, direction: str = "up") -> str:
             
             # Perform swipe
             driver.swipe(int(start_x), int(start_y), int(end_x), int(end_y), 500)
-            print(f"Scrolled {direction} in element found by {by} with value {value}")
+            print(f"🔧 Scrolled {direction} in element found by {by} with value {value}")
             return f"Successfully scrolled {direction} in element"
         except Exception as e:
             return f"Failed to scroll element: {e}"
@@ -126,7 +126,7 @@ def scroll_to_element(by: str, value: str, scrollable_by: str = "xpath", scrolla
                 try:
                     element = driver.find_element(by=by, value=value)
                     if element.is_displayed():
-                        print(f"Found element by {by} with value {value} after {i} scrolls")
+                        print(f"🔧 Found element by {by} with value {value} after {i} scrolls")
                         return f"Successfully scrolled to element by {by} with value {value}"
                 except Exception:
                     pass

@@ -53,7 +53,7 @@ def get_device_info() -> str:
             output += f"Is Locked: {info['is_locked']}\n"
             output += f"Battery Info:\n{info['battery']}\n"
             
-            print(f"Retrieved device information: {output}")
+            print(f"🔧 Retrieved device information: {output}")
             return output
         except Exception as e:
             return f"Failed to get device info: {e}"
@@ -72,7 +72,7 @@ def is_locked() -> str:
     if driver:
         try:
             locked = driver.is_locked()
-            print(f"Device locked status: {locked}")
+            print(f"🔧 Device locked status: {locked}")
             return f"Device is {'locked' if locked else 'unlocked'}"
         except Exception as e:
             return f"Failed to check lock status: {e}"
@@ -91,7 +91,7 @@ def get_orientation() -> str:
     if driver:
         try:
             orientation = driver.orientation
-            print(f"Current orientation: {orientation}")
+            print(f"🔧 Current orientation: {orientation}")
             return f"Current orientation: {orientation}"
         except Exception as e:
             return f"Failed to get orientation: {e}"
@@ -116,7 +116,7 @@ def set_orientation(orientation: str) -> str:
                 return "Invalid orientation. Use 'PORTRAIT' or 'LANDSCAPE'"
             
             driver.orientation = orientation.upper()
-            print(f"Set orientation to: {orientation}")
+            print(f"🔧 Set orientation to: {orientation}")
             return f"Successfully set orientation to: {orientation}"
         except Exception as e:
             return f"Failed to set orientation: {e}"

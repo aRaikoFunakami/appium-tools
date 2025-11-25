@@ -18,7 +18,7 @@ def find_element(by: str, value: str) -> str:
     if driver:
         try:
             element = driver.find_element(by=by, value=value)
-            print(f"Found element {element} by {by} with value {value}")
+            print(f"🔧 Found element {element} by {by} with value {value}")
             return f"Successfully found element by {by} with value {value}"
         except Exception as e:
             return f"Failed to find element: {e}"
@@ -42,7 +42,7 @@ def click_element(by: str, value: str) -> str:
         try:
             element = driver.find_element(by=by, value=value)
             element.click()
-            print(f"Clicked element by {by} with value {value}")
+            print(f"🔧 Clicked element by {by} with value {value}")
             return f"Successfully clicked on element by {by} with value {value}"
         except Exception as e:
             return f"Failed to click element: {e}"
@@ -66,7 +66,7 @@ def get_text(by: str, value: str) -> str:
         try:
             element = driver.find_element(by=by, value=value)
             text = element.text
-            print(f"Got text '{text}' from element by {by} with value {value}")
+            print(f"🔧 Got text '{text}' from element by {by} with value {value}")
             return f"Element text: {text}"
         except Exception as e:
             return f"Failed to get text: {e}"
@@ -95,7 +95,7 @@ def press_keycode(keycode: int) -> str:
     if driver:
         try:
             driver.press_keycode(keycode)
-            print(f"Pressed keycode {keycode}")
+            print(f"🔧 Pressed keycode {keycode}")
             return f"Successfully pressed keycode {keycode}"
         except Exception as e:
             return f"Failed to press keycode: {e}"
@@ -123,7 +123,7 @@ def double_tap(by: str, value: str) -> str:
             action = TouchAction(driver)
             action.tap(element).perform()
             action.tap(element).perform()
-            print(f"Double tapped element by {by} with value {value}")
+            print(f"🔧 Double tapped element by {by} with value {value}")
             return f"Successfully double tapped on element by {by} with value {value}"
         except Exception as e:
             return f"Failed to double tap element: {e}"
@@ -155,8 +155,9 @@ def send_keys(by: str, value: str, text: str) -> str:
     if driver:
         try:
             element = driver.find_element(by=by, value=value)
+            element.click()
             element.send_keys(text)
-            print(f"Sent keys '{text}' to element by {by} with value {value}")
+            print(f"🔧 Sent keys '{text}' to element by {by} with value {value}")
             return f"Successfully sent keys '{text}' to element"
         except Exception as e:
             return f"Failed to send keys: {e}"

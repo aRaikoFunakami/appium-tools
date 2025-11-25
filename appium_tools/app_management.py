@@ -15,7 +15,7 @@ def get_current_app() -> str:
         try:
             current_package = driver.current_package
             current_activity = driver.current_activity
-            print(f"Current app: {current_package}/{current_activity}")
+            print(f"🔧 Current app: {current_package}/{current_activity}")
             return f"Current app package: {current_package}\nCurrent activity: {current_activity}"
         except Exception as e:
             return f"Failed to get current app: {e}"
@@ -37,7 +37,7 @@ def activate_app(app_id: str) -> str:
     if driver:
         try:
             driver.activate_app(app_id)
-            print(f"Activated app: {app_id}")
+            print(f"🔧 Activated app: {app_id}")
             return f"Successfully activated app: {app_id}"
         except Exception as e:
             return f"Failed to activate app: {e}"
@@ -59,7 +59,7 @@ def terminate_app(app_id: str) -> str:
     if driver:
         try:
             result = driver.terminate_app(app_id)
-            print(f"Terminated app: {app_id}, result: {result}")
+            print(f"🔧 Terminated app: {app_id}, result: {result}")
             return f"Successfully terminated app: {app_id} (result: {result})"
         except Exception as e:
             return f"Failed to terminate app: {e}"
@@ -90,8 +90,8 @@ def list_apps() -> str:
             
             # Parse package names (format: "package:com.example.app")
             package_list = [line.replace("package:", "") for line in packages.split("\n") if line.startswith("package:")]
-            print(f"Found {len(package_list)} installed apps")
-            print(f"Installed apps: {package_list}")
+            print(f"🔧 Found {len(package_list)} installed apps")
+            print(f"🔧 Installed apps: {package_list}")
             return f"Installed apps ({len(package_list)}):\n" + "\n".join(package_list)
         except Exception as e:
             return f"Failed to list apps: {e}"
