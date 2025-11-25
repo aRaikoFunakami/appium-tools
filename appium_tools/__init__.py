@@ -1,7 +1,7 @@
 """Appium tools for LangChain integration."""
 
 from .session import appium_driver, get_driver_status
-from .interaction import find_element, click_element, set_value, get_text, press_keycode, double_tap, send_keys
+from .interaction import find_element, click_element, get_text, press_keycode, double_tap, send_keys
 from .navigation import take_screenshot, scroll_element, get_page_source, scroll_to_element
 from .app_management import get_current_app, activate_app, terminate_app, list_apps
 from .device_info import get_device_info, is_locked, get_orientation, set_orientation
@@ -13,7 +13,6 @@ __all__ = [
     # Interaction
     "find_element",
     "click_element",
-    "set_value",
     "get_text",
     "press_keycode",
     "double_tap",
@@ -42,13 +41,12 @@ def appium_tools():
     """LangChain エージェント用の全Appiumツールリストを返す。
     
     Returns:
-        list: LangChain BaseTool のリスト（20個のAppium自動化ツール）
+        list: LangChain BaseTool のリスト（19個のAppium自動化ツール）
     """
     return [
         get_driver_status,
         find_element,
         click_element,
-        set_value,
         get_text,
         press_keycode,
         double_tap,

@@ -75,40 +75,6 @@ def get_text(by: str, value: str) -> str:
 
 
 @tool
-def set_value(by: str, value: str, text: str) -> str:
-    """Set the value/text of an input element directly (bypasses keyboard).
-    
-    ⚠️ Use send_keys() instead for normal text input.
-    Only use set_value() when:
-    - You want to avoid showing the keyboard
-    - You need to bypass IME interference (predictive text, autocomplete)
-    - You're entering a large amount of text (faster performance)
-    - You want to avoid triggering input events
-    - You're working with non-standard UI that requires direct value setting
-    
-    Args:
-        by: The locator strategy (e.g., "xpath", "id", "accessibility_id")
-        value: The locator value to search for the input element
-        text: The text to set in the input element
-        
-    Returns:
-        A message indicating success or failure of setting the value
-    """
-    from .session import driver
-    if driver:
-        try:
-            element = driver.find_element(by=by, value=value)
-            element.clear()
-            element.send_keys(text)
-            print(f"Set value '{text}' to element by {by} with value {value}")
-            return f"Successfully set value '{text}' to element"
-        except Exception as e:
-            return f"Failed to set value: {e}"
-    else:
-        return "Driver is not initialized"
-
-
-@tool
 def press_keycode(keycode: int) -> str:
     """Press an Android keycode (e.g., back button, home button, etc.).
     

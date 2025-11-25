@@ -41,19 +41,10 @@ Available actions:
 - Check driver status
 - Find elements on the screen using XPath, ID, or accessibility ID
 - Click on elements
-- Input text using send_keys (recommended) or set_value (for special cases)
+- Input text using send_keys (simulates real typing, triggers input events)
 - Get the XML page source of the current screen
 - Take a screenshot and save it to a file
 - Scroll within a scrollable element (like a list or scrollview)
-
-Text Input Guidelines:
-- Use send_keys() for normal text input (simulates real typing, triggers events)
-- Use set_value() only when you need to:
-  * Avoid showing the keyboard
-  * Bypass IME interference (predictive text)
-  * Enter large amounts of text quickly
-  * Avoid triggering input events
-  * Work with non-standard UI elements
 
 When the user asks you to interact with the device, use the appropriate tools.
 For finding elements, use XPath like '//*[@text="Battery"]' or '//*[@resource-id="com.android.settings:id/search"]'.
