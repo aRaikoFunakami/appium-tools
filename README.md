@@ -21,15 +21,18 @@ LangChain統合されたAppium自動化ツール集。GPT-4を使ってAndroid�
 uv add git+https://github.com/aRaikoFunakami/appium-tools.git
 ```
 
-**編集可能モード（開発中のプロジェクト用）:**
+**編集可能モード（ローカル開発用）:**
 ```bash
-uv add --editable git+https://github.com/aRaikoFunakami/appium-tools.git
+# リポジトリをクローンしてから
+git clone https://github.com/aRaikoFunakami/appium-tools.git
+cd your-project
+uv add --editable ../appium-tools
 ```
 
 **使用例:**
 ```python
-from tools import appium_tools, appium_driver
-from tools.token_counter import TiktokenCountCallback
+from appium_tools import appium_tools, appium_driver
+from appium_tools.token_counter import TiktokenCountCallback
 
 # 全Appiumツールを取得
 tools = appium_tools()
