@@ -1,9 +1,12 @@
 """Session management tools for Appium."""
 
+import logging
 from contextlib import asynccontextmanager
 from appium import webdriver
 from appium.options.android import UiAutomator2Options
 from langchain.tools import tool
+
+logger = logging.getLogger(__name__)
 
 driver = None
 

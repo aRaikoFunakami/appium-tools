@@ -1,6 +1,9 @@
 """Device information tools for Appium."""
 
+import logging
 from langchain.tools import tool
+
+logger = logging.getLogger(__name__)
 
 
 @tool
@@ -32,7 +35,6 @@ def get_device_info() -> str:
                 "sdk": shell("getprop", "ro.build.version.sdk"),
                 "display_resolution": shell("wm", "size"),
                 "density": shell("wm", "density"),
-                "battery": shell("dumpsys", "battery"),
                 "current_package": driver.current_package,
                 "current_activity": driver.current_activity,
                 "orientation": driver.orientation,
@@ -51,7 +53,7 @@ def get_device_info() -> str:
             output += f"Current Activity: {info['current_activity']}\n"
             output += f"Orientation: {info['orientation']}\n"
             output += f"Is Locked: {info['is_locked']}\n"
-            output += f"Battery Info:\n{info['battery']}\n"
+
             
             print(f"🔧 Retrieved device information: {output}")
             return output
@@ -72,7 +74,7 @@ def is_locked() -> str:
     if driver:
         try:
             locked = driver.is_locked()
-            print(f"🔧 Device locked status: {locked}")
+            logger.info(f"🔧 Device locked status: {locked}")
             return f"Device is {'locked' if locked else 'unlocked'}"
         except Exception as e:
             return f"Failed to check lock status: {e}"
@@ -91,7 +93,7 @@ def get_orientation() -> str:
     if driver:
         try:
             orientation = driver.orientation
-            print(f"🔧 Current orientation: {orientation}")
+            logger.info(f"🔧 Current orientation: {orientation}")
             return f"Current orientation: {orientation}"
         except Exception as e:
             return f"Failed to get orientation: {e}"
@@ -116,7 +118,7 @@ def set_orientation(orientation: str) -> str:
                 return "Invalid orientation. Use 'PORTRAIT' or 'LANDSCAPE'"
             
             driver.orientation = orientation.upper()
-            print(f"🔧 Set orientation to: {orientation}")
+            logger.info(f"🔧 Set orientation to: {orientation}")
             return f"Successfully set orientation to: {orientation}"
         except Exception as e:
             return f"Failed to set orientation: {e}"

@@ -1,5 +1,10 @@
 """Appium tools for LangChain integration."""
 
+import logging
+
+# Create logger for appium_tools package
+logger = logging.getLogger(__name__)
+
 from .session import appium_driver, get_driver_status
 from .interaction import find_element, click_element, get_text, press_keycode, double_tap, send_keys
 from .navigation import take_screenshot, scroll_element, get_page_source, scroll_to_element
