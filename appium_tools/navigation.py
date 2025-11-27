@@ -36,7 +36,8 @@ def get_page_source() -> str:
     if driver:
         try:
             source = driver.page_source
-            logger.info(f"🔧 Page source retrieved successfully: {source[:100]}...")  # Print first 100 chars for brevity    
+            logger.info("🔧 Page source retrieved successfully")  
+            logger.debug(f"\n{source}\n")     
             return f"Page source retrieved successfully:\n{source}"
         except Exception as e:
             return f"Failed to get page source: {e}"
