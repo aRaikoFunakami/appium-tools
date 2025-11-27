@@ -16,17 +16,18 @@ def find_element(by: str, value: str) -> str:
         
     Returns:
         A message indicating success or failure of finding the element
+        
+    Raises:
+        ValueError: If driver is not initialized
+        Exception: Any Appium-related exception
     """
     from .session import driver
-    if driver:
-        try:
-            element = driver.find_element(by=by, value=value)
-            logger.info(f"🔧 Found element {element} by {by} with value {value}")
-            return f"Successfully found element by {by} with value {value}"
-        except Exception as e:
-            return f"Failed to find element: {e}"
-    else:
-        return "Driver is not initialized"
+    if not driver:
+        raise ValueError("Driver is not initialized")
+    
+    element = driver.find_element(by=by, value=value)
+    logger.info(f"🔧 Found element {element} by {by} with value {value}")
+    return f"Successfully found element by {by} with value {value}"
 
 
 @tool
@@ -39,18 +40,19 @@ def click_element(by: str, value: str) -> str:
         
     Returns:
         A message indicating success or failure of clicking the element
+        
+    Raises:
+        ValueError: If driver is not initialized
+        Exception: Any Appium-related exception
     """
     from .session import driver
-    if driver:
-        try:
-            element = driver.find_element(by=by, value=value)
-            element.click()
-            logger.info(f"🔧 Clicked element by {by} with value {value}")
-            return f"Successfully clicked on element by {by} with value {value}"
-        except Exception as e:
-            return f"Failed to click element: {e}"
-    else:
-        return "Driver is not initialized"
+    if not driver:
+        raise ValueError("Driver is not initialized")
+    
+    element = driver.find_element(by=by, value=value)
+    element.click()
+    logger.info(f"🔧 Clicked element by {by} with value {value}")
+    return f"Successfully clicked on element by {by} with value {value}"
 
 
 @tool
@@ -63,18 +65,19 @@ def get_text(by: str, value: str) -> str:
         
     Returns:
         The text content of the element, or an error message
+        
+    Raises:
+        ValueError: If driver is not initialized
+        Exception: Any Appium-related exception
     """
     from .session import driver
-    if driver:
-        try:
-            element = driver.find_element(by=by, value=value)
-            text = element.text
-            logger.info(f"🔧 Got text '{text}' from element by {by} with value {value}")
-            return f"Element text: {text}"
-        except Exception as e:
-            return f"Failed to get text: {e}"
-    else:
-        return "Driver is not initialized"
+    if not driver:
+        raise ValueError("Driver is not initialized")
+    
+    element = driver.find_element(by=by, value=value)
+    text = element.text
+    logger.info(f"🔧 Got text '{text}' from element by {by} with value {value}")
+    return f"Element text: {text}"
 
 
 @tool
@@ -93,17 +96,18 @@ def press_keycode(keycode: int) -> str:
         82 = MENU
         66 = ENTER
         67 = DEL (backspace)
+        
+    Raises:
+        ValueError: If driver is not initialized
+        Exception: Any Appium-related exception
     """
     from .session import driver
-    if driver:
-        try:
-            driver.press_keycode(keycode)
-            logger.info(f"🔧 Pressed keycode {keycode}")
-            return f"Successfully pressed keycode {keycode}"
-        except Exception as e:
-            return f"Failed to press keycode: {e}"
-    else:
-        return "Driver is not initialized"
+    if not driver:
+        raise ValueError("Driver is not initialized")
+    
+    driver.press_keycode(keycode)
+    logger.info(f"🔧 Pressed keycode {keycode}")
+    return f"Successfully pressed keycode {keycode}"
 
 
 @tool
@@ -116,22 +120,23 @@ def double_tap(by: str, value: str) -> str:
         
     Returns:
         A message indicating success or failure of double tapping the element
+        
+    Raises:
+        ValueError: If driver is not initialized
+        Exception: Any Appium-related exception
     """
     from .session import driver
-    if driver:
-        try:
-            element = driver.find_element(by=by, value=value)
-            # Double tap using actions API
-            from appium.webdriver.common.touch_action import TouchAction
-            action = TouchAction(driver)
-            action.tap(element).perform()
-            action.tap(element).perform()
-            logger.info(f"🔧 Double tapped element by {by} with value {value}")
-            return f"Successfully double tapped on element by {by} with value {value}"
-        except Exception as e:
-            return f"Failed to double tap element: {e}"
-    else:
-        return "Driver is not initialized"
+    if not driver:
+        raise ValueError("Driver is not initialized")
+    
+    element = driver.find_element(by=by, value=value)
+    # Double tap using actions API
+    from appium.webdriver.common.touch_action import TouchAction
+    action = TouchAction(driver)
+    action.tap(element).perform()
+    action.tap(element).perform()
+    logger.info(f"🔧 Double tapped element by {by} with value {value}")
+    return f"Successfully double tapped on element by {by} with value {value}"
 
 
 @tool
@@ -153,16 +158,17 @@ def send_keys(by: str, value: str, text: str) -> str:
         
     Returns:
         A message indicating success or failure of sending keys
+        
+    Raises:
+        ValueError: If driver is not initialized
+        Exception: Any Appium-related exception
     """
     from .session import driver
-    if driver:
-        try:
-            element = driver.find_element(by=by, value=value)
-            element.click()
-            element.send_keys(text)
-            logger.info(f"🔧 Sent keys '{text}' to element by {by} with value {value}")
-            return f"Successfully sent keys '{text}' to element"
-        except Exception as e:
-            return f"Failed to send keys: {e}"
-    else:
-        return "Driver is not initialized"
+    if not driver:
+        raise ValueError("Driver is not initialized")
+    
+    element = driver.find_element(by=by, value=value)
+    element.click()
+    element.send_keys(text)
+    logger.info(f"🔧 Sent keys '{text}' to element by {by} with value {value}")
+    return f"Successfully sent keys '{text}' to element"
