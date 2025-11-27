@@ -77,31 +77,26 @@ Always check the driver status first before attempting operations."""
                 if not user_input:
                     continue
                 
-                # トークンカウンターをリセット(1チャットごとに)
-                # 注: エージェントは複数回LLM呼び出しをするため、リセットは実行前に1回だけ
-                token_counter.reset_counters()
-                
-                # エージェントを実行(LangChain v1 API)
-                # callbacks は config の外に出す必要がある
-                from langchain_core.runnables import RunnableConfig
-                
-                response = await agent.ainvoke(
-                    {"messages": [{"role": "user", "content": user_input}]},
-                    config=RunnableConfig(
-                        configurable={"thread_id": "1"},
-                        callbacks=[token_counter]
+                # クエリを追跡（自動的にこの処理の開始地点を記録）
+                with token_counter.track_query() as query:
+                    # エージェントを実行(LangChain v1 API)
+                    from langchain_core.runnables import RunnableConfig
+                    
+                    response = await agent.ainvoke(
+                        {"messages": [{"role": "user", "content": user_input}]},
+                        config=RunnableConfig(
+                            configurable={"thread_id": "1"},
+                            callbacks=[token_counter]
+                        )
                     )
-                )
-                
-                print(f"\nAssistant: {response['messages'][-1].content}\n")
-                
-                # トークン使用量と費用を表示
-                metrics = token_counter.get_metrics()
-                print(f"\n💰 Cost: ${metrics['total_cost_usd']:.6f} USD | 📊 Total: {metrics['total_tokens']} tokens")
-                print(f"   📥 Input: {metrics['input_tokens']} tokens (${metrics['input_cost_usd']:.6f})")
-                if metrics['cached_tokens'] > 0:
-                    print(f"   💾 Cached: {metrics['cached_tokens']} tokens (${metrics['cached_cost_usd']:.6f})")
-                print(f"   📤 Output: {metrics['output_tokens']} tokens (${metrics['output_cost_usd']:.6f})\n")
+                    
+                    print(f"\nAssistant: {response['messages'][-1].content}\n")
+                    
+                    # このクエリのレポートを表示
+                    report = query.report()
+                    if report:
+                        print(report)
+                        print()  # 空行
                 
                 
             except KeyboardInterrupt:
@@ -109,6 +104,11 @@ Always check the driver status first before attempting operations."""
                 break
             except Exception as e:
                 print(f"\nError: {e}\n")
+        
+        # ループを抜けたら全体のサマリーを表示
+        session_summary = token_counter.format_session_summary()
+        if session_summary:
+            print("\n" + session_summary + "\n")
 
 
 if __name__ == '__main__':

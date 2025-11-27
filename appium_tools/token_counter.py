@@ -3,6 +3,7 @@ Token counting and cost calculation functionality using tiktoken
 OpenAI APIのトークン数計算と費用計算機能
 """
 from typing import Any, Dict, List, Optional, Tuple
+from contextlib import contextmanager
 from langchain_core.callbacks.base import BaseCallbackHandler
 
 
@@ -307,6 +308,8 @@ class TiktokenCountCallback(BaseCallbackHandler):
     """
     LangChain callback to count tokens using tiktoken
     tiktoken を使用してトークン数を計算するLangChainコールバック
+    
+    各ainvoke呼び出しごとの詳細な履歴を保存し、後から取り出せます。
     """
     
     def __init__(self, model: str = "gpt-4.1-mini") -> None:
@@ -321,10 +324,15 @@ class TiktokenCountCallback(BaseCallbackHandler):
         self.cached_tokens = 0  # キャッシュヒットしたトークン数
         self.output_tokens = 0
         self.pricing_calculator = OpenAIPricingCalculator()
+        
+        # ainvokeごとの履歴を保存するリスト
+        self.invocation_history: List[Dict[str, Any]] = []
+        self._current_invocation_id = 0
     
     def on_llm_start(self, serialized: Dict[str, Any], prompts: List[str], **kwargs: Any) -> None:
-        """LLM開始時に呼び出される（何もしない）"""
-        pass
+        """LLM開始時に呼び出される - 新しいinvocationの開始を記録"""
+        self._current_invocation_id += 1
+        self._current_invocation_start_time = __import__('time').time()
     
     def on_llm_new_token(self, token: str, **kwargs: Any) -> None:
         """ストリーミング時に呼び出される（何もしない）"""
@@ -333,7 +341,7 @@ class TiktokenCountCallback(BaseCallbackHandler):
     def on_llm_end(self, response, **kwargs: Any) -> None:
         """
         Called when LLM completes - count tokens from actual API response
-        LLM完了時に呼び出され、実際のAPIレスポンスからトークン数を取得
+        LLM完了時に呼び出され、実際のAPIレスポンスからトークン数を取得し、履歴に記録
         """
         if not (hasattr(response, 'llm_output') and response.llm_output):
             raise ValueError("APIレスポンスにllm_outputが含まれていません")
@@ -354,6 +362,54 @@ class TiktokenCountCallback(BaseCallbackHandler):
         self.input_tokens += prompt_tokens
         self.cached_tokens = getattr(self, 'cached_tokens', 0) + cached_tokens
         self.output_tokens += completion_tokens
+        
+        # このinvocationの費用を計算
+        invocation_cost = self._calculate_invocation_cost(
+            prompt_tokens, cached_tokens, completion_tokens
+        )
+        
+        # 履歴に記録
+        elapsed_time = __import__('time').time() - getattr(self, '_current_invocation_start_time', __import__('time').time())
+        invocation_record = {
+            "invocation_id": self._current_invocation_id,
+            "timestamp": __import__('datetime').datetime.now().isoformat(),
+            "elapsed_seconds": round(elapsed_time, 2),
+            "model": self.model,
+            "input_tokens": prompt_tokens,
+            "cached_tokens": cached_tokens,
+            "output_tokens": completion_tokens,
+            "total_tokens": prompt_tokens + completion_tokens,
+            "input_cost_usd": invocation_cost["input_cost"],
+            "output_cost_usd": invocation_cost["output_cost"],
+            "cached_cost_usd": invocation_cost["cached_cost"],
+            "total_cost_usd": invocation_cost["total_cost"],
+        }
+        self.invocation_history.append(invocation_record)
+    
+    def _calculate_invocation_cost(self, input_tokens: int, cached_tokens: int, output_tokens: int) -> Dict[str, float]:
+        """
+        単一invocationの費用を計算
+        """
+        normalized_model = self.pricing_calculator._normalize_model_name(self.model)
+        pricing = self.pricing_calculator.PRICING.get(normalized_model, self.pricing_calculator.PRICING["default"])
+        
+        # 通常の入力トークン（キャッシュされていない部分）
+        non_cached_tokens = input_tokens - cached_tokens
+        
+        # 費用計算
+        non_cached_cost = (non_cached_tokens / 1000) * pricing["input"]
+        cached_cost = (cached_tokens / 1000) * pricing["cached"]
+        output_cost = (output_tokens / 1000) * pricing["output"]
+        
+        input_cost = non_cached_cost + cached_cost
+        total_cost = input_cost + output_cost
+        
+        return {
+            "input_cost": round(input_cost, 6),
+            "output_cost": round(output_cost, 6),
+            "cached_cost": round(cached_cost, 6),
+            "total_cost": round(total_cost, 6),
+        }
     
     @property
     def total_tokens(self) -> int:
@@ -417,6 +473,258 @@ class TiktokenCountCallback(BaseCallbackHandler):
         self.input_tokens = 0
         self.cached_tokens = 0
         self.output_tokens = 0
+        self.invocation_history.clear()
+        self._current_invocation_id = 0
+    
+    def get_invocation_history(self) -> List[Dict[str, Any]]:
+        """
+        全てのainvoke呼び出し履歴を取得
+        
+        Returns:
+            List of invocation records with tokens, costs, and metadata
+        """
+        return self.invocation_history.copy()
+    
+    def get_invocation_by_id(self, invocation_id: int) -> Optional[Dict[str, Any]]:
+        """
+        特定のinvocation IDの情報を取得
+        
+        Args:
+            invocation_id: The invocation ID to retrieve
+            
+        Returns:
+            Invocation record or None if not found
+        """
+        for record in self.invocation_history:
+            if record["invocation_id"] == invocation_id:
+                return record.copy()
+        return None
+    
+    def get_latest_invocation(self) -> Optional[Dict[str, Any]]:
+        """
+        最新のainvoke呼び出し情報を取得
+        
+        Returns:
+            Latest invocation record or None if no invocations yet
+        """
+        if not self.invocation_history:
+            return None
+        return self.invocation_history[-1].copy()
+    
+    def get_invocations_summary(self) -> Dict[str, Any]:
+        """
+        全てのainvoke呼び出しのサマリーを取得
+        
+        Returns:
+            Summary including count, total tokens, and total cost
+        """
+        if not self.invocation_history:
+            return {
+                "total_invocations": 0,
+                "total_input_tokens": 0,
+                "total_cached_tokens": 0,
+                "total_output_tokens": 0,
+                "total_tokens": 0,
+                "total_cost_usd": 0.0,
+                "average_tokens_per_invocation": 0.0,
+                "average_cost_per_invocation": 0.0,
+            }
+        
+        total_input = sum(r["input_tokens"] for r in self.invocation_history)
+        total_cached = sum(r["cached_tokens"] for r in self.invocation_history)
+        total_output = sum(r["output_tokens"] for r in self.invocation_history)
+        total_cost = sum(r["total_cost_usd"] for r in self.invocation_history)
+        count = len(self.invocation_history)
+        
+        return {
+            "total_invocations": count,
+            "total_input_tokens": total_input,
+            "total_cached_tokens": total_cached,
+            "total_output_tokens": total_output,
+            "total_tokens": total_input + total_output,
+            "total_cost_usd": round(total_cost, 6),
+            "average_tokens_per_invocation": round((total_input + total_output) / count, 2),
+            "average_cost_per_invocation": round(total_cost / count, 6),
+        }
+    
+    def format_invocation_details(self, width: int = 70) -> str:
+        """
+        各LLM呼び出しの詳細を整形された文字列で返す
+        
+        Args:
+            width: 表示幅（デフォルト: 70文字）
+            
+        Returns:
+            整形された詳細情報の文字列
+        """
+        if not self.invocation_history:
+            return "No LLM invocations recorded yet."
+        
+        lines = []
+        lines.append("=" * width)
+        lines.append("📊 LLM Invocation Details:")
+        lines.append("=" * width)
+        
+        for inv in self.invocation_history:
+            lines.append(f"\n🔹 Call #{inv['invocation_id']} ({inv['elapsed_seconds']}s)")
+            lines.append(f"   Tokens: {inv['input_tokens']} input + {inv['output_tokens']} output = {inv['total_tokens']} total")
+            if inv['cached_tokens'] > 0:
+                lines.append(f"   💾 Cache Hit: {inv['cached_tokens']} tokens saved ${inv['cached_cost_usd']:.6f}")
+            lines.append(f"   💰 Cost: ${inv['total_cost_usd']:.6f}")
+        
+        return "\n".join(lines)
+    
+    def format_summary(self, width: int = 70) -> str:
+        """
+        サマリー統計を整形された文字列で返す
+        
+        Args:
+            width: 表示幅（デフォルト: 70文字）
+            
+        Returns:
+            整形されたサマリー情報の文字列
+        """
+        summary = self.get_invocations_summary()
+        
+        if summary['total_invocations'] == 0:
+            return "No LLM invocations to summarize."
+        
+        lines = []
+        lines.append("=" * width)
+        lines.append("📈 Summary:")
+        lines.append("=" * width)
+        lines.append(f"Total LLM Calls: {summary['total_invocations']}")
+        lines.append(f"Total Tokens: {summary['total_tokens']} ({summary['total_input_tokens']} input + {summary['total_output_tokens']} output)")
+        if summary['total_cached_tokens'] > 0:
+            lines.append(f"💾 Total Cached: {summary['total_cached_tokens']} tokens")
+        lines.append(f"💰 Total Cost: ${summary['total_cost_usd']:.6f}")
+        lines.append(f"📊 Average: {summary['average_tokens_per_invocation']:.1f} tokens/call, ${summary['average_cost_per_invocation']:.6f}/call")
+        lines.append("=" * width)
+        
+        return "\n".join(lines)
+    
+    def format_report(self, width: int = 70, show_details: bool = True) -> str:
+        """
+        詳細とサマリーを含む完全なレポートを整形された文字列で返す
+        
+        Args:
+            width: 表示幅（デフォルト: 70文字）
+            show_details: 詳細を表示するかどうか（デフォルト: True）
+            
+        Returns:
+            整形された完全なレポートの文字列
+        """
+        if not self.invocation_history:
+            return "No LLM invocations recorded yet."
+        
+        parts = []
+        
+        if show_details:
+            parts.append(self.format_invocation_details(width))
+            parts.append("")  # 空行
+        
+        parts.append(self.format_summary(width))
+        
+        return "\n".join(parts)
+    
+    def format_loop_report(self, start_index: int, width: int = 70) -> str:
+        """
+        特定のインデックス以降のinvocationのみのレポートを整形して返す（ループごとの表示用）
+        
+        Args:
+            start_index: 開始インデックス（このインデックス以降のinvocationを表示）
+            width: 表示幅（デフォルト: 70文字）
+            
+        Returns:
+            整形されたループレポートの文字列
+        """
+        if not self.invocation_history or start_index >= len(self.invocation_history):
+            return ""
+        
+        loop_history = self.invocation_history[start_index:]
+        
+        lines = []
+        lines.append("=" * width)
+        lines.append("📊 This Query LLM Calls:")
+        lines.append("=" * width)
+        
+        loop_input_tokens = 0
+        loop_cached_tokens = 0
+        loop_output_tokens = 0
+        loop_cost = 0.0
+        
+        for inv in loop_history:
+            lines.append(f"\n🔹 Call #{inv['invocation_id']} ({inv['elapsed_seconds']}s)")
+            lines.append(f"   Model: {inv['model']}")
+            lines.append(f"   Tokens: {inv['input_tokens']} input + {inv['output_tokens']} output = {inv['total_tokens']} total")
+            if inv['cached_tokens'] > 0:
+                lines.append(f"   💾 Cache Hit: {inv['cached_tokens']} tokens saved ${inv['cached_cost_usd']:.6f}")
+            lines.append(f"   💰 Cost: ${inv['total_cost_usd']:.6f}")
+            
+            loop_input_tokens += inv['input_tokens']
+            loop_cached_tokens += inv['cached_tokens']
+            loop_output_tokens += inv['output_tokens']
+            loop_cost += inv['total_cost_usd']
+        
+        lines.append("\n" + "-" * width)
+        lines.append(f"📊 This Query Total: {len(loop_history)} calls, {loop_input_tokens + loop_output_tokens} tokens, ${loop_cost:.6f}")
+        lines.append("=" * width)
+        
+        return "\n".join(lines)
+    
+    def format_session_summary(self, width: int = 70) -> str:
+        """
+        セッション全体のサマリーを整形して返す（quit時の表示用）
+        
+        Args:
+            width: 表示幅（デフォルト: 70文字）
+            
+        Returns:
+            整形されたセッションサマリーの文字列
+        """
+        summary = self.get_invocations_summary()
+        
+        if summary['total_invocations'] == 0:
+            return ""
+        
+        lines = []
+        lines.append("=" * width)
+        lines.append("📈 SESSION SUMMARY:")
+        lines.append("=" * width)
+        lines.append(f"Total LLM Calls: {summary['total_invocations']}")
+        lines.append(f"Total Tokens: {summary['total_tokens']} ({summary['total_input_tokens']} input + {summary['total_output_tokens']} output)")
+        if summary['total_cached_tokens'] > 0:
+            lines.append(f"💾 Total Cached: {summary['total_cached_tokens']} tokens")
+        lines.append(f"💰 Total Cost: ${summary['total_cost_usd']:.6f}")
+        lines.append(f"📊 Average: {summary['average_tokens_per_invocation']:.1f} tokens/call, ${summary['average_cost_per_invocation']:.6f}/call")
+        lines.append("=" * width)
+        
+        return "\n".join(lines)
+    
+    @contextmanager
+    def track_query(self):
+        """
+        1つのクエリ（処理単位）を追跡するコンテキストマネージャー
+        
+        使い方:
+            with token_counter.track_query() as query:
+                # ainvoke実行
+                response = await agent.ainvoke(...)
+                # クエリレポート表示
+                print(query.report())
+        """
+        start_index = len(self.invocation_history)
+        
+        class QueryTracker:
+            def __init__(self, counter, start_idx):
+                self.counter = counter
+                self.start_index = start_idx
+            
+            def report(self, width: int = 70) -> str:
+                """このクエリのレポートを返す"""
+                return self.counter.format_loop_report(self.start_index, width)
+        
+        yield QueryTracker(self, start_index)
 
 
 
