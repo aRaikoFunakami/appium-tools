@@ -2,6 +2,7 @@
 
 import logging
 from langchain.tools import tool
+from selenium.common.exceptions import InvalidSessionIdException
 
 logger = logging.getLogger(__name__)
 
@@ -15,16 +16,20 @@ def get_current_app() -> str:
         
     Raises:
         ValueError: If driver is not initialized
-        Exception: Any Appium-related exception
+        InvalidSessionIdException: If Appium session has expired
     """
     from .session import driver
     if not driver:
         raise ValueError("Driver is not initialized")
     
-    current_package = driver.current_package
-    current_activity = driver.current_activity
-    logger.info(f"🔧 Current app: {current_package}/{current_activity}")
-    return f"Current app package: {current_package}\nCurrent activity: {current_activity}"
+    try:
+        current_package = driver.current_package
+        current_activity = driver.current_activity
+        logger.info(f"🔧 Current app: {current_package}/{current_activity}")
+        return f"Current app package: {current_package}\nCurrent activity: {current_activity}"
+    except InvalidSessionIdException:
+        # Session expired - re-raise to caller
+        raise
 
 
 @tool
@@ -39,15 +44,19 @@ def activate_app(app_id: str) -> str:
         
     Raises:
         ValueError: If driver is not initialized
-        Exception: Any Appium-related exception
+        InvalidSessionIdException: If Appium session has expired
     """
     from .session import driver
     if not driver:
         raise ValueError("Driver is not initialized")
     
-    driver.activate_app(app_id)
-    logger.info(f"🔧 Activated app: {app_id}")
-    return f"Successfully activated app: {app_id}"
+    try:
+        driver.activate_app(app_id)
+        logger.info(f"🔧 Activated app: {app_id}")
+        return f"Successfully activated app: {app_id}"
+    except InvalidSessionIdException:
+        # Session expired - re-raise to caller
+        raise
 
 
 @tool
@@ -62,15 +71,19 @@ def terminate_app(app_id: str) -> str:
         
     Raises:
         ValueError: If driver is not initialized
-        Exception: Any Appium-related exception
+        InvalidSessionIdException: If Appium session has expired
     """
     from .session import driver
     if not driver:
         raise ValueError("Driver is not initialized")
     
-    result = driver.terminate_app(app_id)
-    logger.info(f"🔧 Terminated app: {app_id}, result: {result}")
-    return f"Successfully terminated app: {app_id} (result: {result})"
+    try:
+        result = driver.terminate_app(app_id)
+        logger.info(f"🔧 Terminated app: {app_id}, result: {result}")
+        return f"Successfully terminated app: {app_id} (result: {result})"
+    except InvalidSessionIdException:
+        # Session expired - re-raise to caller
+        raise
 
 
 @tool
@@ -82,25 +95,29 @@ def list_apps() -> str:
         
     Raises:
         ValueError: If driver is not initialized
-        Exception: Any Appium-related exception
+        InvalidSessionIdException: If Appium session has expired
     """
     from .session import driver
     if not driver:
         raise ValueError("Driver is not initialized")
     
-    # Get list of installed packages using adb shell
-    result = driver.execute_script("mobile: shell", {
-        "command": "pm",
-        "args": ["list", "packages"]
-    })
-    # Handle both dict and string responses
-    if isinstance(result, dict):
-        packages = result.get("stdout", "").strip()
-    else:
-        packages = str(result).strip()
-    
-    # Parse package names (format: "package:com.example.app")
-    package_list = [line.replace("package:", "") for line in packages.split("\n") if line.startswith("package:")]
-    logger.info(f"🔧 Found {len(package_list)} installed apps")
-    logger.debug(f"🔧 Installed apps: {package_list}")
-    return f"Installed apps ({len(package_list)}):\n" + "\n".join(package_list)
+    try:
+        # Get list of installed packages using adb shell
+        result = driver.execute_script("mobile: shell", {
+            "command": "pm",
+            "args": ["list", "packages"]
+        })
+        # Handle both dict and string responses
+        if isinstance(result, dict):
+            packages = result.get("stdout", "").strip()
+        else:
+            packages = str(result).strip()
+        
+        # Parse package names (format: "package:com.example.app")
+        package_list = [line.replace("package:", "") for line in packages.split("\n") if line.startswith("package:")]
+        logger.info(f"🔧 Found {len(package_list)} installed apps")
+        logger.debug(f"🔧 Installed apps: {package_list}")
+        return f"Installed apps ({len(package_list)}):\n" + "\n".join(package_list)
+    except InvalidSessionIdException:
+        # Session expired - re-raise to caller
+        raise

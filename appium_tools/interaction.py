@@ -2,6 +2,12 @@
 
 import logging
 from langchain.tools import tool
+from selenium.common.exceptions import (
+    InvalidSessionIdException,
+    InvalidArgumentException,
+    InvalidSelectorException,
+    NoSuchElementException
+)
 
 logger = logging.getLogger(__name__)
 
@@ -19,15 +25,23 @@ def find_element(by: str, value: str) -> str:
         
     Raises:
         ValueError: If driver is not initialized
-        Exception: Any Appium-related exception
+        InvalidSessionIdException: If Appium session has expired
     """
     from .session import driver
     if not driver:
         raise ValueError("Driver is not initialized")
     
-    element = driver.find_element(by=by, value=value)
-    logger.info(f"🔧 Found element {element} by {by} with value {value}")
-    return f"Successfully found element by {by} with value {value}"
+    try:
+        element = driver.find_element(by=by, value=value)
+        logger.info(f"🔧 Found element {element} by {by} with value {value}")
+        return f"Successfully found element by {by} with value {value}"
+    except (InvalidArgumentException, InvalidSelectorException) as e:
+        return f"❌ Invalid locator: by='{by}' is not a valid locator strategy. Use 'xpath', 'id', 'accessibility_id', 'class_name', etc. Error: {e.msg}"
+    except NoSuchElementException:
+        return f"❌ Element not found: No element found with by='{by}' and value='{value}'. Please verify the selector or wait for the element to appear."
+    except InvalidSessionIdException:
+        # Session expired - re-raise to caller
+        raise
 
 
 @tool
@@ -43,16 +57,24 @@ def click_element(by: str, value: str) -> str:
         
     Raises:
         ValueError: If driver is not initialized
-        Exception: Any Appium-related exception
+        InvalidSessionIdException: If Appium session has expired
     """
     from .session import driver
     if not driver:
         raise ValueError("Driver is not initialized")
     
-    element = driver.find_element(by=by, value=value)
-    element.click()
-    logger.info(f"🔧 Clicked element by {by} with value {value}")
-    return f"Successfully clicked on element by {by} with value {value}"
+    try:
+        element = driver.find_element(by=by, value=value)
+        element.click()
+        logger.info(f"🔧 Clicked element by {by} with value {value}")
+        return f"Successfully clicked on element by {by} with value {value}"
+    except (InvalidArgumentException, InvalidSelectorException) as e:
+        return f"❌ Invalid locator: by='{by}' is not a valid locator strategy. Use 'xpath', 'id', 'accessibility_id', 'class_name', etc. Error: {e.msg}"
+    except NoSuchElementException:
+        return f"❌ Element not found: No element found with by='{by}' and value='{value}'. Please verify the selector or wait for the element to appear."
+    except InvalidSessionIdException:
+        # Session expired - re-raise to caller
+        raise
 
 
 @tool
@@ -68,16 +90,24 @@ def get_text(by: str, value: str) -> str:
         
     Raises:
         ValueError: If driver is not initialized
-        Exception: Any Appium-related exception
+        InvalidSessionIdException: If Appium session has expired
     """
     from .session import driver
     if not driver:
         raise ValueError("Driver is not initialized")
     
-    element = driver.find_element(by=by, value=value)
-    text = element.text
-    logger.info(f"🔧 Got text '{text}' from element by {by} with value {value}")
-    return f"Element text: {text}"
+    try:
+        element = driver.find_element(by=by, value=value)
+        text = element.text
+        logger.info(f"🔧 Got text '{text}' from element by {by} with value {value}")
+        return f"Element text: {text}"
+    except (InvalidArgumentException, InvalidSelectorException) as e:
+        return f"❌ Invalid locator: by='{by}' is not a valid locator strategy. Use 'xpath', 'id', 'accessibility_id', 'class_name', etc. Error: {e.msg}"
+    except NoSuchElementException:
+        return f"❌ Element not found: No element found with by='{by}' and value='{value}'. Please verify the selector or wait for the element to appear."
+    except InvalidSessionIdException:
+        # Session expired - re-raise to caller
+        raise
 
 
 @tool
@@ -99,15 +129,19 @@ def press_keycode(keycode: int) -> str:
         
     Raises:
         ValueError: If driver is not initialized
-        Exception: Any Appium-related exception
+        InvalidSessionIdException: If Appium session has expired
     """
     from .session import driver
     if not driver:
         raise ValueError("Driver is not initialized")
     
-    driver.press_keycode(keycode)
-    logger.info(f"🔧 Pressed keycode {keycode}")
-    return f"Successfully pressed keycode {keycode}"
+    try:
+        driver.press_keycode(keycode)
+        logger.info(f"🔧 Pressed keycode {keycode}")
+        return f"Successfully pressed keycode {keycode}"
+    except InvalidSessionIdException:
+        # Session expired - re-raise to caller
+        raise
 
 
 @tool
@@ -123,20 +157,28 @@ def double_tap(by: str, value: str) -> str:
         
     Raises:
         ValueError: If driver is not initialized
-        Exception: Any Appium-related exception
+        InvalidSessionIdException: If Appium session has expired
     """
     from .session import driver
     if not driver:
         raise ValueError("Driver is not initialized")
     
-    element = driver.find_element(by=by, value=value)
-    # Double tap using actions API
-    from appium.webdriver.common.touch_action import TouchAction
-    action = TouchAction(driver)
-    action.tap(element).perform()
-    action.tap(element).perform()
-    logger.info(f"🔧 Double tapped element by {by} with value {value}")
-    return f"Successfully double tapped on element by {by} with value {value}"
+    try:
+        element = driver.find_element(by=by, value=value)
+        # Double tap using actions API
+        from appium.webdriver.common.touch_action import TouchAction
+        action = TouchAction(driver)
+        action.tap(element).perform()
+        action.tap(element).perform()
+        logger.info(f"🔧 Double tapped element by {by} with value {value}")
+        return f"Successfully double tapped on element by {by} with value {value}"
+    except (InvalidArgumentException, InvalidSelectorException) as e:
+        return f"❌ Invalid locator: by='{by}' is not a valid locator strategy. Use 'xpath', 'id', 'accessibility_id', 'class_name', etc. Error: {e.msg}"
+    except NoSuchElementException:
+        return f"❌ Element not found: No element found with by='{by}' and value='{value}'. Please verify the selector or wait for the element to appear."
+    except InvalidSessionIdException:
+        # Session expired - re-raise to caller
+        raise
 
 
 @tool
@@ -161,14 +203,22 @@ def send_keys(by: str, value: str, text: str) -> str:
         
     Raises:
         ValueError: If driver is not initialized
-        Exception: Any Appium-related exception
+        InvalidSessionIdException: If Appium session has expired
     """
     from .session import driver
     if not driver:
         raise ValueError("Driver is not initialized")
     
-    element = driver.find_element(by=by, value=value)
-    element.click()
-    element.send_keys(text)
-    logger.info(f"🔧 Sent keys '{text}' to element by {by} with value {value}")
-    return f"Successfully sent keys '{text}' to element"
+    try:
+        element = driver.find_element(by=by, value=value)
+        element.click()
+        element.send_keys(text)
+        logger.info(f"🔧 Sent keys '{text}' to element by {by} with value {value}")
+        return f"Successfully sent keys '{text}' to element"
+    except (InvalidArgumentException, InvalidSelectorException) as e:
+        return f"❌ Invalid locator: by='{by}' is not a valid locator strategy. Use 'xpath', 'id', 'accessibility_id', 'class_name', etc. Error: {e.msg}"
+    except NoSuchElementException:
+        return f"❌ Element not found: No element found with by='{by}' and value='{value}'. Please verify the selector or wait for the element to appear."
+    except InvalidSessionIdException:
+        # Session expired - re-raise to caller
+        raise

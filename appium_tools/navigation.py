@@ -2,6 +2,7 @@
 
 import logging
 from langchain.tools import tool
+from selenium.common.exceptions import InvalidSessionIdException
 
 logger = logging.getLogger(__name__)
 
@@ -15,15 +16,19 @@ def take_screenshot() -> str:
         
     Raises:
         ValueError: If driver is not initialized
-        Exception: Any Appium-related exception
+        InvalidSessionIdException: If Appium session has expired
     """
     from .session import driver
     if not driver:
         raise ValueError("Driver is not initialized")
     
-    screenshot_base64 = driver.get_screenshot_as_base64()
-    logger.info("🔧 Screenshot taken successfully")
-    return screenshot_base64
+    try:
+        screenshot_base64 = driver.get_screenshot_as_base64()
+        logger.info("🔧 Screenshot taken successfully")
+        return screenshot_base64
+    except InvalidSessionIdException:
+        # Session expired - re-raise to caller
+        raise
 
 
 @tool
@@ -35,16 +40,20 @@ def get_page_source() -> str:
         
     Raises:
         ValueError: If driver is not initialized
-        Exception: Any Appium-related exception
+        InvalidSessionIdException: If Appium session has expired
     """
     from .session import driver
     if not driver:
         raise ValueError("Driver is not initialized")
     
-    source = driver.page_source
-    logger.info("🔧 Page source retrieved successfully")  
-    logger.debug(f"\n{source}\n")     
-    return f"Page source retrieved successfully:\n{source}"
+    try:
+        source = driver.page_source
+        logger.info("🔧 Page source retrieved successfully")  
+        logger.debug(f"\n{source}\n")     
+        return f"Page source retrieved successfully:\n{source}"
+    except InvalidSessionIdException:
+        # Session expired - re-raise to caller
+        raise
 
 
 @tool
@@ -71,44 +80,48 @@ def scroll_element(by: str, value: str, direction: str = "up") -> str:
     if not driver:
         raise ValueError("Driver is not initialized")
     
-    element = driver.find_element(by=by, value=value)
-    
-    # Get element location and size
-    location = element.location
-    size = element.size
-    
-    # Calculate center point
-    center_x = location['x'] + size['width'] // 2
-    center_y = location['y'] + size['height'] // 2
-    
-    # Calculate swipe coordinates within the element
-    if direction == "up":
-        start_x = center_x
-        start_y = location['y'] + size['height'] * 0.8
-        end_x = center_x
-        end_y = location['y'] + size['height'] * 0.2
-    elif direction == "down":
-        start_x = center_x
-        start_y = location['y'] + size['height'] * 0.2
-        end_x = center_x
-        end_y = location['y'] + size['height'] * 0.8
-    elif direction == "left":
-        start_x = location['x'] + size['width'] * 0.8
-        start_y = center_y
-        end_x = location['x'] + size['width'] * 0.2
-        end_y = center_y
-    elif direction == "right":
-        start_x = location['x'] + size['width'] * 0.2
-        start_y = center_y
-        end_x = location['x'] + size['width'] * 0.8
-        end_y = center_y
-    else:
-        raise ValueError(f"Invalid direction: {direction}. Use 'up', 'down', 'left', or 'right'")
-    
-    # Perform swipe
-    driver.swipe(int(start_x), int(start_y), int(end_x), int(end_y), 500)
-    logger.info(f"🔧 Scrolled {direction} in element found by {by} with value {value}")
-    return f"Successfully scrolled {direction} in element"
+    try:
+        element = driver.find_element(by=by, value=value)
+        
+        # Get element location and size
+        location = element.location
+        size = element.size
+        
+        # Calculate center point
+        center_x = location['x'] + size['width'] // 2
+        center_y = location['y'] + size['height'] // 2
+        
+        # Calculate swipe coordinates within the element
+        if direction == "up":
+            start_x = center_x
+            start_y = location['y'] + size['height'] * 0.8
+            end_x = center_x
+            end_y = location['y'] + size['height'] * 0.2
+        elif direction == "down":
+            start_x = center_x
+            start_y = location['y'] + size['height'] * 0.2
+            end_x = center_x
+            end_y = location['y'] + size['height'] * 0.8
+        elif direction == "left":
+            start_x = location['x'] + size['width'] * 0.8
+            start_y = center_y
+            end_x = location['x'] + size['width'] * 0.2
+            end_y = center_y
+        elif direction == "right":
+            start_x = location['x'] + size['width'] * 0.2
+            start_y = center_y
+            end_x = location['x'] + size['width'] * 0.8
+            end_y = center_y
+        else:
+            raise ValueError(f"Invalid direction: {direction}. Use 'up', 'down', 'left', or 'right'")
+        
+        # Perform swipe
+        driver.swipe(int(start_x), int(start_y), int(end_x), int(end_y), 500)
+        logger.info(f"🔧 Scrolled {direction} in element found by {by} with value {value}")
+        return f"Successfully scrolled {direction} in element"
+    except InvalidSessionIdException:
+        # Session expired - re-raise to caller
+        raise
 
 
 @tool
@@ -132,24 +145,28 @@ def scroll_to_element(by: str, value: str, scrollable_by: str = "xpath", scrolla
     if not driver:
         raise ValueError("Driver is not initialized")
     
-    # Try to find the element first
-    max_scrolls = 10
-    for i in range(max_scrolls):
-        try:
-            element = driver.find_element(by=by, value=value)
-            if element.is_displayed():
-                logger.info(f"🔧 Found element by {by} with value {value} after {i} scrolls")
-                return f"Successfully scrolled to element by {by} with value {value}"
-        except Exception:
-            pass
+    try:
+        # Try to find the element first
+        max_scrolls = 10
+        for i in range(max_scrolls):
+            try:
+                element = driver.find_element(by=by, value=value)
+                if element.is_displayed():
+                    logger.info(f"🔧 Found element by {by} with value {value} after {i} scrolls")
+                    return f"Successfully scrolled to element by {by} with value {value}"
+            except Exception:
+                pass
+            
+            # Scroll down
+            scrollable = driver.find_element(by=scrollable_by, value=scrollable_value)
+            location = scrollable.location
+            size = scrollable.size
+            center_x = location['x'] + size['width'] // 2
+            start_y = location['y'] + size['height'] * 0.8
+            end_y = location['y'] + size['height'] * 0.2
+            driver.swipe(int(center_x), int(start_y), int(center_x), int(end_y), 500)
         
-        # Scroll down
-        scrollable = driver.find_element(by=scrollable_by, value=scrollable_value)
-        location = scrollable.location
-        size = scrollable.size
-        center_x = location['x'] + size['width'] // 2
-        start_y = location['y'] + size['height'] * 0.8
-        end_y = location['y'] + size['height'] * 0.2
-        driver.swipe(int(center_x), int(start_y), int(center_x), int(end_y), 500)
-    
-    raise ValueError(f"Failed to find element by {by} with value {value} after {max_scrolls} scrolls")
+        raise ValueError(f"Failed to find element by {by} with value {value} after {max_scrolls} scrolls")
+    except InvalidSessionIdException:
+        # Session expired - re-raise to caller
+        raise
