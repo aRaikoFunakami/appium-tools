@@ -38,7 +38,7 @@ def find_element(by: str, value: str) -> str:
     except (InvalidArgumentException, InvalidSelectorException) as e:
         return f"❌ Invalid locator: by='{by}' is not a valid locator strategy. Use 'xpath', 'id', 'accessibility_id', 'class_name', etc. Error: {e.msg}"
     except NoSuchElementException:
-        return f"❌ Element not found: No element found with by='{by}' and value='{value}'. Please verify the selector or wait for the element to appear."
+        return f"❌ Element not found: No element found with by='{by}' and value='{value}'. IMPORTANT: Before trying different selectors, use get_page_source() to see the actual screen structure and find the correct element identifiers."
     except InvalidSessionIdException:
         # Session expired - re-raise to caller
         raise
@@ -71,7 +71,7 @@ def click_element(by: str, value: str) -> str:
     except (InvalidArgumentException, InvalidSelectorException) as e:
         return f"❌ Invalid locator: by='{by}' is not a valid locator strategy. Use 'xpath', 'id', 'accessibility_id', 'class_name', etc. Error: {e.msg}"
     except NoSuchElementException:
-        return f"❌ Element not found: No element found with by='{by}' and value='{value}'. Please verify the selector or wait for the element to appear."
+        return f"❌ Element not found: No element found with by='{by}' and value='{value}'. IMPORTANT: Before trying different selectors, use get_page_source() to see the actual screen structure and find the correct element identifiers."
     except InvalidSessionIdException:
         # Session expired - re-raise to caller
         raise
@@ -104,7 +104,7 @@ def get_text(by: str, value: str) -> str:
     except (InvalidArgumentException, InvalidSelectorException) as e:
         return f"❌ Invalid locator: by='{by}' is not a valid locator strategy. Use 'xpath', 'id', 'accessibility_id', 'class_name', etc. Error: {e.msg}"
     except NoSuchElementException:
-        return f"❌ Element not found: No element found with by='{by}' and value='{value}'. Please verify the selector or wait for the element to appear."
+        return f"❌ Element not found: No element found with by='{by}' and value='{value}'. IMPORTANT: Before trying different selectors, use get_page_source() to see the actual screen structure and find the correct element identifiers."
     except InvalidSessionIdException:
         # Session expired - re-raise to caller
         raise
@@ -175,7 +175,7 @@ def double_tap(by: str, value: str) -> str:
     except (InvalidArgumentException, InvalidSelectorException) as e:
         return f"❌ Invalid locator: by='{by}' is not a valid locator strategy. Use 'xpath', 'id', 'accessibility_id', 'class_name', etc. Error: {e.msg}"
     except NoSuchElementException:
-        return f"❌ Element not found: No element found with by='{by}' and value='{value}'. Please verify the selector or wait for the element to appear."
+        return f"❌ Element not found: No element found with by='{by}' and value='{value}'. IMPORTANT: Before trying different selectors, use get_page_source() to see the actual screen structure and find the correct element identifiers."
     except InvalidSessionIdException:
         # Session expired - re-raise to caller
         raise
@@ -218,7 +218,7 @@ def send_keys(by: str, value: str, text: str) -> str:
     except (InvalidArgumentException, InvalidSelectorException) as e:
         return f"❌ Invalid locator: by='{by}' is not a valid locator strategy. Use 'xpath', 'id', 'accessibility_id', 'class_name', etc. Error: {e.msg}"
     except NoSuchElementException:
-        return f"❌ Element not found: No element found with by='{by}' and value='{value}'. Please verify the selector or wait for the element to appear."
+        return f"❌ Element not found: No element found with by='{by}' and value='{value}'. IMPORTANT: Before trying different selectors, use get_page_source() to see the actual screen structure and find the correct element identifiers."
     except InvalidSessionIdException:
         # Session expired - re-raise to caller
         raise

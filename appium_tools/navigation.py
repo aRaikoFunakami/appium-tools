@@ -35,6 +35,15 @@ def take_screenshot() -> str:
 def get_page_source() -> str:
     """Get the XML source of the current screen layout.
     
+    ⚠️ IMPORTANT: Use this tool when:
+    - An element cannot be found (NoSuchElementException)
+    - You need to see what elements are actually on the screen
+    - You want to find the correct resource-id, text, or class name
+    - Before trying multiple different XPath selectors blindly
+    
+    The XML shows all elements with their attributes (resource-id, text, class, content-desc).
+    This helps you write accurate selectors instead of guessing.
+    
     Returns:
         The XML page source if successful, or an error message
         
