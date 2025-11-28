@@ -32,6 +32,40 @@ def take_screenshot() -> str:
 
 
 @tool
+def wait_short_loading(seconds: str = "5") -> str:
+    """画面が読み込み中と判断した場合に短時間待機する。
+
+    LLMがナビゲーション直後や重い処理後にUIがまだ安定していないと判断した際に
+    呼び出してください。指定秒数だけ待機して、後続の操作の安定性を高めます。
+
+    Args:
+        seconds: 待機秒数を文字列で指定（デフォルト: "5"）。数値化できない場合は5秒。
+
+    Returns:
+        待機結果を示す文字列（成功/失敗メッセージ）。
+    """
+    from .session import driver
+    if not driver:
+        return "Driver is not initialized"
+
+    try:
+        try:
+            wait_secs = max(0, int(seconds))
+        except Exception:
+            wait_secs = 5
+
+        logger.info(f"🔧 Waiting {wait_secs}s to allow UI to settle...")
+        import time
+        time.sleep(wait_secs)
+        return f"Waited {wait_secs} seconds for loading"
+    except InvalidSessionIdException:
+        # セッション切れの場合は上位で対処できるようにそのまま再送出
+        raise
+    except Exception as e:
+        return f"Failed: {e}"
+
+
+@tool
 def get_page_source() -> str:
     """Get the XML source of the current screen layout.
     

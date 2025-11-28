@@ -7,7 +7,7 @@ logger = logging.getLogger(__name__)
 
 from .session import appium_driver, get_driver_status
 from .interaction import find_element, click_element, get_text, press_keycode, double_tap, send_keys
-from .navigation import take_screenshot, scroll_element, get_page_source, scroll_to_element
+from .navigation import take_screenshot, scroll_element, get_page_source, scroll_to_element, wait_short_loading
 from .app_management import get_current_app, activate_app, terminate_app, list_apps
 from .device_info import get_device_info, is_locked, get_orientation, set_orientation
 
@@ -27,6 +27,7 @@ __all__ = [
     "scroll_element",
     "get_page_source",
     "scroll_to_element",
+    "wait_short_loading",
     # App Management
     "get_current_app",
     "activate_app",
@@ -68,4 +69,5 @@ def appium_tools():
         is_locked,
         get_orientation,
         set_orientation,
+        wait_short_loading,
     ]
