@@ -310,7 +310,15 @@ class TiktokenCountCallback(BaseCallbackHandler):
     tiktoken を使用してトークン数を計算するLangChainコールバック
     
     各ainvoke呼び出しごとの詳細な履歴を保存し、後から取り出せます。
+    
+    グローバル統計機能:
+    - 複数のセッション（appium_driverの起動）をまたいだ累積統計を保持
+    - reset_counters()を呼んでも、グローバル統計は保持される
+    - save_session_to_global()で現在のセッションをグローバル履歴に追加
     """
+    
+    # クラス変数: 全インスタンス・全セッションを通じた累積履歴
+    _global_history: List[Dict[str, Any]] = []
     
     def __init__(self, model: str = "gpt-4.1-mini") -> None:
         """
@@ -325,7 +333,7 @@ class TiktokenCountCallback(BaseCallbackHandler):
         self.output_tokens = 0
         self.pricing_calculator = OpenAIPricingCalculator()
         
-        # ainvokeごとの履歴を保存するリスト
+        # ainvokeごとの履歴を保存するリスト（セッション単位）
         self.invocation_history: List[Dict[str, Any]] = []
         self._current_invocation_id = 0
     
@@ -469,6 +477,8 @@ class TiktokenCountCallback(BaseCallbackHandler):
         """
         Reset all counters for reuse
         カウンターをリセットして再利用可能にする
+        
+        注意: グローバル履歴(_global_history)はリセットされません
         """
         self.input_tokens = 0
         self.cached_tokens = 0
@@ -725,6 +735,155 @@ class TiktokenCountCallback(BaseCallbackHandler):
                 return self.counter.format_loop_report(self.start_index, width)
         
         yield QueryTracker(self, start_index)
+    
+    # ===== グローバル統計機能 =====
+    
+    def save_session_to_global(self, session_label: Optional[str] = None) -> None:
+        """
+        現在のセッション統計をグローバル履歴に保存
+        
+        Args:
+            session_label: セッションのラベル（オプション）。省略時は自動生成
+        """
+        if not self.invocation_history:
+            return  # 空のセッションは保存しない
+        
+        summary = self.get_invocations_summary()
+        
+        session_record = {
+            "session_label": session_label or f"Session {len(self._global_history) + 1}",
+            "timestamp": __import__('datetime').datetime.now().isoformat(),
+            "total_invocations": summary["total_invocations"],
+            "total_input_tokens": summary["total_input_tokens"],
+            "total_cached_tokens": summary["total_cached_tokens"],
+            "total_output_tokens": summary["total_output_tokens"],
+            "total_tokens": summary["total_tokens"],
+            "total_cost_usd": summary["total_cost_usd"],
+            "invocations": self.invocation_history.copy(),  # 詳細も保存
+        }
+        
+        self._global_history.append(session_record)
+    
+    @classmethod
+    def get_global_history(cls) -> List[Dict[str, Any]]:
+        """
+        全セッションのグローバル履歴を取得
+        
+        Returns:
+            List of session records
+        """
+        return cls._global_history.copy()
+    
+    @classmethod
+    def get_global_summary(cls) -> Dict[str, Any]:
+        """
+        全セッションを集計したグローバルサマリーを取得
+        
+        Returns:
+            Summary of all sessions combined
+        """
+        if not cls._global_history:
+            return {
+                "total_sessions": 0,
+                "total_invocations": 0,
+                "total_input_tokens": 0,
+                "total_cached_tokens": 0,
+                "total_output_tokens": 0,
+                "total_tokens": 0,
+                "total_cost_usd": 0.0,
+            }
+        
+        total_sessions = len(cls._global_history)
+        total_invocations = sum(s["total_invocations"] for s in cls._global_history)
+        total_input = sum(s["total_input_tokens"] for s in cls._global_history)
+        total_cached = sum(s["total_cached_tokens"] for s in cls._global_history)
+        total_output = sum(s["total_output_tokens"] for s in cls._global_history)
+        total_cost = sum(s["total_cost_usd"] for s in cls._global_history)
+        
+        return {
+            "total_sessions": total_sessions,
+            "total_invocations": total_invocations,
+            "total_input_tokens": total_input,
+            "total_cached_tokens": total_cached,
+            "total_output_tokens": total_output,
+            "total_tokens": total_input + total_output,
+            "total_cost_usd": round(total_cost, 6),
+        }
+    
+    @classmethod
+    def format_global_summary(cls, width: int = 70) -> str:
+        """
+        全セッションのグローバルサマリーを整形して返す
+        
+        Args:
+            width: 表示幅（デフォルト: 70文字）
+            
+        Returns:
+            整形されたグローバルサマリーの文字列
+        """
+        summary = cls.get_global_summary()
+        
+        if summary["total_sessions"] == 0:
+            return ""
+        
+        lines = []
+        lines.append("=" * width)
+        lines.append("🌍 GLOBAL SUMMARY (All Sessions):")
+        lines.append("=" * width)
+        lines.append(f"Total Sessions: {summary['total_sessions']}")
+        lines.append(f"Total LLM Calls: {summary['total_invocations']}")
+        lines.append(f"Total Tokens: {summary['total_tokens']} ({summary['total_input_tokens']} input + {summary['total_output_tokens']} output)")
+        if summary['total_cached_tokens'] > 0:
+            lines.append(f"💾 Total Cached: {summary['total_cached_tokens']} tokens")
+        lines.append(f"💰 Total Cost: ${summary['total_cost_usd']:.6f}")
+        lines.append("=" * width)
+        
+        return "\n".join(lines)
+    
+    @classmethod
+    def format_global_detailed(cls, width: int = 70) -> str:
+        """
+        各セッションの詳細を含むグローバルレポートを整形して返す
+        
+        Args:
+            width: 表示幅（デフォルト: 70文字）
+            
+        Returns:
+            整形された詳細グローバルレポートの文字列
+        """
+        if not cls._global_history:
+            return ""
+        
+        lines = []
+        lines.append("=" * width)
+        lines.append("🌍 GLOBAL DETAILED REPORT:")
+        lines.append("=" * width)
+        
+        for i, session in enumerate(cls._global_history, 1):
+            lines.append(f"\n📦 {session['session_label']}")
+            lines.append(f"   Time: {session['timestamp']}")
+            lines.append(f"   Calls: {session['total_invocations']}")
+            lines.append(f"   Tokens: {session['total_tokens']} ({session['total_input_tokens']} input + {session['total_output_tokens']} output)")
+            if session['total_cached_tokens'] > 0:
+                lines.append(f"   💾 Cached: {session['total_cached_tokens']} tokens")
+            lines.append(f"   💰 Cost: ${session['total_cost_usd']:.6f}")
+        
+        lines.append("\n" + "-" * width)
+        summary = cls.get_global_summary()
+        lines.append(f"🌍 Total: {summary['total_sessions']} sessions, {summary['total_invocations']} calls, {summary['total_tokens']} tokens, ${summary['total_cost_usd']:.6f}")
+        lines.append("=" * width)
+        
+        return "\n".join(lines)
+    
+    @classmethod
+    def reset_global_history(cls) -> None:
+        """
+        グローバル履歴をクリア
+        
+        警告: 全セッションの累積統計が削除されます
+        """
+        cls._global_history.clear()
+
 
 
 
